@@ -14,13 +14,16 @@ jobs:
     
     - uses: actions/checkout@v2
 
-    - name: Execute steps
-      shell: powershell
-      run: |
-        Install-Module Pester -Force -AllowClobber
-        Install-Module Az -Force -AllowClobber
-        $User = "${{ secrets.PRINCIPAL_USER }}"
-        $PWord = ConvertTo-SecureString -String ${{ secrets.PRINCIPAL_PASSWORD }} -AsPlainText -Force
-        $Credential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $User, $PWord
-        Connect-AzAccount -Credential $Credential -Tenant "${{ secrets.PRINCIPAL_TENANT }}" -ServicePrincipal
-        Invoke-Pester ./samples/ClassroomLabs/Modules/Library/Tests/Cleanup.ps1 
+    - name: Login via Az module
+      uses: azure/login@v1
+      with:
+        creds: ${{secrets.AZURE_CREDENTIALS}}
+        enable-AzPSSession: true
+
+    - name: Run Azure PowerShell script
+      uses: azure/powershell@v1
+      with:
+        azPSVersion: 'latest'
+        inlineScript: |
+          Install-Module -Name Pester -Force -AllowClobber -RequiredVersion 4.10.1
+          Invoke-Pester ./samples/ClassroomLabs/Modules/Library/Tests/Cleanup.ps1 

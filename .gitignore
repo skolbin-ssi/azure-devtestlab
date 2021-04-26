@@ -12,3 +12,5 @@ packages/
 *.csproj.user
 **/obj/*
 **/Properties/PublishProfiles/*
+*.cred
+debug.log
