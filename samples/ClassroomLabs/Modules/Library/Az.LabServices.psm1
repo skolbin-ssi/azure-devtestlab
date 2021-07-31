@@ -571,7 +571,7 @@ function New-AzLabAccountSharedGallery {
             foreach ($la in $LabAccount) {
                 $uri = ConvertToUri -resource $la
 
-                if ($SharedGalleryId -eq $null){
+                if ($SharedGallery){
 
                     $sharedGalleryName = $SharedGallery.Name
 
@@ -582,10 +582,13 @@ function New-AzLabAccountSharedGallery {
                         $sharedLibraryId = $SharedGallery.Id
                     }
                 }
-                else {
+                elseif ($SharedGalleryId) {
                     # /subscriptions/ebfb37db-8168-4a51-aa4d-4e5e2efa4f54/resourceGroups/MSPTestRG/providers/Microsoft.Compute/galleries/TestSharedGallery
                     $sharedGalleryName = $SharedGalleryId.split('/')[8]
                     $sharedLibraryId = $SharedGalleryId
+                }
+                else {
+                    Write-Error "Must pass in either SharedGallery or SharedGalleryId to New-AzlabAccountSharedGallery commandlet"
                 }
 
                 $fullUri = $uri + "/SharedGalleries/$sharedGalleryName"
@@ -744,7 +747,7 @@ function Remove-AzLab {
                 $uri = ConvertToUri -resource $l
                 InvokeRest -Uri $uri -Method 'Delete'
                 if ($EnableWaitForDelete) {
-                    WaitDeleting -uri $uri -delaySec 30 -retryCount 60
+                    WaitDeleting -uri $uri -delaySec 60 -retryCount 60
                 }
             }
         }
@@ -776,7 +779,7 @@ function New-AzLab {
             
         [parameter(mandatory = $false, ValueFromPipelineByPropertyName = $true)]
         [switch]
-        $InstallGpuDriverEnabled = $false,
+        $GpuDriverEnabled = $false,
 
         [parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true, HelpMessage = "User name if shared password is enabled")]
         [string]
@@ -788,7 +791,7 @@ function New-AzLab {
 
         [parameter(mandatory = $false, ValueFromPipelineByPropertyName = $true)]
         [switch]
-        $LinuxRdpEnabled = $false,
+        $LinuxRdp = $false,
 
         [parameter(Mandatory = $false, ValueFromPipelineByPropertyName = $true, HelpMessage = "Quota of hours x users (defaults to 40)")]
         [int]
@@ -829,13 +832,13 @@ function New-AzLab {
                 $environmentSettingUri = $labUri + "/environmentsettings/default"
                 $sharedPassword = if ($SharedPasswordEnabled) { "Enabled" } else { "Disabled" }
                 $imageType = if ($image.id -match '/galleryimages/') { 'galleryImageResourceId' } else { 'sharedImageResourceId' }
-                if ($LinuxRdpEnabled) {$linuxRdpState = 'Enabled'} else { $linuxRdpState = 'Disabled' }
-                if ($InstallGpuDriverEnabled) {$gpuDriverState = 'Enabled'} else { $gpuDriverState = 'Disabled' }
+                if ($LinuxRdp) {$linuxRdpState = 'Enabled'} else { $linuxRdpState = 'Disabled' }
+                if ($GpuDriverEnabled) {$gpuDriverState = 'Enabled'} else { $gpuDriverState = 'Disabled' }
                 if ($idleGracePeriod -eq 0) {$idleShutdownMode = "None"} else {$idleShutdownMode = "OnDisconnect"}
                 if ($idleOsGracePeriod -eq 0) {$enableDisconnectOnIdle = "Disabled"} else {$enableDisconnectOnIdle = "Enabled"}
                 if ($idleNoConnectGracePeriod -eq 0) {$enableNoConnectShutdown = "Disabled"} else {$enableNoConnectShutdown = "Enabled"}
 
-                if ($LinuxRdpEnabled) {
+                if ($LinuxRdp) {
                 InvokeRest -Uri $createUri -Method 'Post' -Body (@{
                         name = $LabName
                         labParameters = @{
@@ -879,7 +882,17 @@ function New-AzLab {
                 #Wait for lab to be created.
                 $lab = WaitProvisioning -uri $labUri -delaySec 60 -retryCount 120
                 #Wait for template to be provisioned.  Even labs without a template will return a environmentsetting object.
-                $defaultEnvironmentSetting = WaitProvisioning -uri $environmentSettingUri -delaySec 60 -retryCount 120 
+                $defaultEnvironmentSetting = WaitProvisioning -uri $environmentSettingUri -delaySec 60 -retryCount 120
+                
+                if ($GpuDriverEnabled) {
+
+                    # The template VM needs to be restarted for the GPU drivers to finish installing properly
+                    # This will eventually be done within the product, but for now, we need to do this explicitly
+                    Write-Verbose "Start template VM after installing GPU drivers"
+                    Get-AzLabTemplateVm $lab | Start-AzLabTemplateVm
+                    Get-AzLabTemplateVm $lab | Stop-AzLabTemplateVm
+                    Write-Verbose "Stopped template VM"
+                }
 
                 return $lab
             }
@@ -1814,7 +1827,7 @@ function New-AzLabSchedule {
         [ValidateLength(4, 5)]
         [string] $EndTime = "10:00",
     
-        [parameter(Mandatory = $false, ValueFromPipelineByPropertyName = $true, HelpMessage = "The Windows time zone id associated with labVmStartup (E.g. UTC, Pacific Standard Time, Central Europe Standard Time).")]
+        [parameter(Mandatory = $false, ValueFromPipelineByPropertyName = $true, HelpMessage = "The Windows time zone id associated with labVmStartup (E.g. UTC, Pacific Standard Time, Central Europe Standard Time).  See Time zones are https://docs.microsoft.com/rest/api/maps/timezone/get-timezone-enum-windows.")]
         [ValidateLength(3, 40)]
         [string] $TimeZoneId = "W. Europe Standard Time",
     

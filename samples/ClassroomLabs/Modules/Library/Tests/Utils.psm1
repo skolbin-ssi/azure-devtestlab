@@ -6,9 +6,9 @@ $rgLocation = 'West US'
 $labName = 'FastLab'
 $laName = 'AzLabsLibrary-la'
 $imgName = 'CentOS-based*'
-$usageQuota = 3000
+$usageQuota = 300
 $shPsswd = $true
-$size = 'Basic'
+$size = 'Standard'
 $userName = 'test0000'
 $password = 'Test00000000'
 $linuxRdp = $true
@@ -84,7 +84,7 @@ function Get-FastLab {
         Write-Verbose "Get-FastLab: Linux RDP $linuxRdp"
 
         $lab = $la `
-        | New-AzLab -LabName $LabRealName -Image $img -Size $size -UsageQuotaInHours $usageQuota -UserName $userName -Password $password -LinuxRdpEnabled:$linuxRdp -SharedPasswordEnabled:$shPsswd `
+        | New-AzLab -LabName $LabRealName -Image $img -Size $size -UsageQuotaInHours $usageQuota -UserName $userName -Password $password -LinuxRdp:$linuxRdp -SharedPasswordEnabled:$shPsswd `
         | Publish-AzLab
         Write-Verbose "$LaRealbName lab doesn't exist. Created it."
         return $lab
