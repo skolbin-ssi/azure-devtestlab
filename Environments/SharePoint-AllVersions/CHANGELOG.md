@@ -1,5 +1,74 @@
 # Change log for Azure DevTest Labs template SharePoint-AllVersions
 
+## Enhancements & bug-fixes - Published in February 07, 2023
+
+### Added
+
+- Template
+  - Added value `Subscription-latest` to parameter `sharePointVersion`, to install the January 2023 CU on SharePoint Subscription
+- Configuration for DC
+  - Create additional users in AD, in a dedicated OU `AdditionalUsers`
+- Configuration for SQL
+  - Install SQL module `SqlServer` (version 21.1.18256) as it is the preferred option of `SqlServerDsc`
+- Configuration for all SharePoint versions
+  - Create various desktop shortcuts
+  - Configure Windows explorer to always show file extensions and expand the ribbon
+
+### Changed
+
+- Template
+  - Revert SQL image to SQL Server 2019, due to reliability issues with SQL Server 2022 (SQL PowerShell modules not ready yet)
+- Configuration for DC
+  - Review the logic to allow the VM to restart after the AD FS farm was configured (as required), and before the other VMs attempt to join the domain
+- Configuration for all VMs except DC
+  - Review the logic to join the AD domain only after it is guaranteed that the DC is ready. This fixes the most common cause of random deployment errors
+
+## Enhancements & bug-fixes - Published in January 10, 2023
+
+* Use a small disk (32 GB) on SharePoint Subscription and SharePoint 2019 VMs.
+* Updated SQL image to use SQL Server 2022 on Windows Server 2022.
+* Now the resource group's name is used in the virtual network and the public IP resources, but it is formatted to handle the restrictions on the characters allowed.
+* Apply browser policies for Edge and Chrome to get rid of noisy wizards / homepages / new tab content.
+* No longer explicitly install Edge browser on Windows Server 2022 VMs as it is present by default.
+* Reorganize the local template variables to be more consistent.
+* In SharePoint VMs: Install the latest version of Fiddler.
+* Update apiVersion of ARM resources to latest version available.
+* Update DSC modules to latest version available.
+
+## Enhancements & bug-fixes - Published in November 28, 2022
+
+* Always install and configure AD CS.
+* Renamed parameter `addPublicIPAddressToEachVM` to `addPublicIPAddress` and changed its type to `string` to provide more granularity. Its default value is now `"SharePointVMsOnly"`, to assign a public IP address only to SharePoint VMs
+* Move the definition of SharePoint Subscription packages list from DSC to the template itself.
+* Improve the logic that installs SharePoint updates when deploying SharePoint Subscription.
+* Warm up SharePoint sites at the end of the configuration.
+* Revert the previous change on the SKU of Public IP addresses, to use again SKU basic when possible (except for Bastion which requires Standard).
+* Revert the previous change on the allocation method of Public IP addresses to use Dynamic instead of Static (except for Bastion which requires Static).
+* Fixed the random error `NetworkSecurityGroupNotCompliantForAzureBastionSubnet` when deploying Azure Bastion by updating the rules in the network security group attached to Bastion's subnet.
+* Update apiVersion of ARM resources to latest version available.
+* Update DSC modules used to latest version available.
+* Replace DSC module xDnsServer 2.0.0 with DnsServerDsc 3.0.0.
+
+## Enhancements & bug-fixes - Published in September 29, 2022
+
+* Add an option to create a SharePoint Subscription farm running with feature update 22H2.
+* Use a gen2 image for SQL Server VM.
+* Enable LDAPS (LDAP over SSL) on the Active Directory domain.
+* Change SKU of Public IP addresses to Standard, since Basic SKU will be retired
+* Update apiVersion of ARM resources.
+* Replace DSC module xWebAdministration 3.3.0 with WebAdministrationDsc 4.0.0.
+
+## Enhancements & bug-fixes - Published in August 8, 2022
+
+* In SP SE, import site certificate in SharePoint, so it can manage the certificate itself.
+* Update LDAP security settings to mitigate CVE-2017-8563.
+* Remove tags on resources, as they did not bring any particular value.
+* Update apiVersion of resources to latest version.
+* Explicitly set the version of each DSC module used.
+* Update DSC modules used to latest version available.
+* Replace all resources xScript with Script and remove dependency on module xPSDesiredStateConfiguration.
+* Add publicIPAddressSPSE to template output.
+
 ## Enhancements & bug-fixes - Published in January 10, 2022
 
 * Add SharePoint Server Subscription and make it the default choice.
